@@ -1,6 +1,5 @@
 package com.example.oauthmailer;
 
-import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -22,6 +21,10 @@ import java.util.Optional;
 @RestController
 public class OAuthMailerApplication extends WebSecurityConfigurerAdapter {
 
+    public OAuthMailerApplication(EmailSenderService emailSenderService) {
+        this.emailSenderService = emailSenderService;
+    }
+
     protected void configure(HttpSecurity http) throws Exception {
         // @formatter:off
         http
@@ -40,6 +43,13 @@ public class OAuthMailerApplication extends WebSecurityConfigurerAdapter {
                 )
                 .oauth2Login();
         // @formatter:on
+    }
+
+    @Autowired
+    private EmailSenderService emailSenderService;
+
+    public void EmailSenderController(EmailSenderService emailSenderService) {
+        this.emailSenderService = emailSenderService;
     }
 
     @Autowired
@@ -71,8 +81,12 @@ public class OAuthMailerApplication extends WebSecurityConfigurerAdapter {
             userRepository.save(user);
             System.out.println("User deets saved to MySQL");
             //Send mail
-            user.setRegisMailSent(true);
-            userRepository.save(user);
+            new Thread(() -> {
+                emailSenderService.sendEmail(email,"Thanks for Signing up to OAuthMailer!", "Registration Confirmed");
+
+                user.setRegisMailSent(true);
+                userRepository.save(user);
+            }).start();
         }
         System.out.println(principal);
         return name;
